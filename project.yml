@@ -34,7 +34,7 @@ targets:
     entitlements:
       path: Config/CarPlayVideo.entitlements
       properties:
-        com.apple.developer.carplay-maps: true
+        com.apple.developer.carplay-video: true
         com.apple.security.application-groups:
           - group.com.saibh.carplayvideo
     info:
@@ -47,8 +47,8 @@ targets:
         UILaunchScreen: {}
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
-        UIBackgroundModes: [audio, location]
-        NSLocationWhenInUseUsageDescription: "Used to pause video on the CarPlay screen while the car is moving, and for the speed and weather widgets."
+        UIBackgroundModes: [audio]
+        NSLocationWhenInUseUsageDescription: "Used for optional speed and local weather values in the iPhone overlay preview."
         NSPhotoLibraryUsageDescription: "Pick videos from your Photos library to play on CarPlay."
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
@@ -78,6 +78,7 @@ targets:
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).PhoneSceneDelegate
             CPTemplateApplicationSceneSessionRoleApplication:
               - UISceneConfigurationName: CarPlay
+                UISceneClassName: CPTemplateApplicationScene
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
     dependencies:
       - target: CarPlayVideoWidgets

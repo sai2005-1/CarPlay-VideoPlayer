@@ -246,10 +246,16 @@ final class PlaybackEngine: NSObject, ObservableObject {
 
     /// Called when CarPlay connects: put something on screen right away.
     func prepareForCarConnection() {
-        guard current == nil, settings.settings.resumeOnConnect, let last = library.lastPlayed else {
-            if current != nil, settings.settings.autoPlayOnConnect, !isPlaying { resume() }
+        if let current {
+            guard current.kind != .youtube,
+                  settings.settings.autoPlayOnConnect,
+                  !isPlaying else { return }
+            resume()
             return
         }
+        guard settings.settings.resumeOnConnect,
+              let last = library.lastPlayed,
+              last.kind != .youtube else { return }
         play(last, autoplay: settings.settings.autoPlayOnConnect)
     }
 
