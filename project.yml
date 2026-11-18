@@ -1,0 +1,146 @@
+name: CarPlayVideo
+options:
+  bundleIdPrefix: com.saibh
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targets:
+  CarPlayVideo:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Shared
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.saibh.carplayvideo
+        PRODUCT_NAME: CarPlayVideo
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_KEY_CFBundleDisplayName: CarPlay Video
+    entitlements:
+      path: Config/CarPlayVideo.entitlements
+      properties:
+        com.apple.developer.carplay-maps: true
+        com.apple.security.application-groups:
+          - group.com.saibh.carplayvideo
+    info:
+      path: Config/Info.plist
+      properties:
+        CFBundleDisplayName: CarPlay Video
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UIBackgroundModes: [audio, location]
+        NSLocationWhenInUseUsageDescription: "Used to pause video on the CarPlay screen while the car is moving, and for the speed and weather widgets."
+        NSPhotoLibraryUsageDescription: "Pick videos from your Photos library to play on CarPlay."
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsArbitraryLoadsInWebContent: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleURLTypes:
+          - CFBundleURLName: com.saibh.carplayvideo
+            CFBundleURLSchemes: [carplayvideo]
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Video
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.movie, public.video, public.mpeg-4, com.apple.quicktime-movie]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Phone
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).PhoneSceneDelegate
+            CPTemplateApplicationSceneSessionRoleApplication:
+              - UISceneConfigurationName: CarPlay
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate
+    dependencies:
+      - target: CarPlayVideoWidgets
+        embed: true
+      - sdk: CarPlay.framework
+      - sdk: WebKit.framework
+      - sdk: AVKit.framework
+      - sdk: WidgetKit.framework
+      - sdk: AppIntents.framework
+
+  CarPlayVideoWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: WidgetExtension
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.saibh.carplayvideo.widgets
+        PRODUCT_NAME: CarPlayVideoWidgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+    entitlements:
+      path: Config/CarPlayVideoWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.saibh.carplayvideo
+    info:
+      path: Config/Widgets-Info.plist
+      properties:
+        CFBundleDisplayName: CarPlay Video Widgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: AppIntents.framework
+
+  CarPlayVideoTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.saibh.carplayvideo.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/CarPlayVideo.app/CarPlayVideo
+        BUNDLE_LOADER: $(TEST_HOST)
+    dependencies:
+      - target: CarPlayVideo
+
+schemes:
+  CarPlayVideo:
+    build:
+      targets:
+        CarPlayVideo: all
+        CarPlayVideoTests: [test]
+    test:
+      targets:
+        - CarPlayVideoTests
+      gatherCoverageData: false
+    archive:
+      config: Release

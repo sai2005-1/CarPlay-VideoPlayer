@@ -1,0 +1,84 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install tools
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Unit tests (iOS Simulator)
+        run: |
+          set -o pipefail
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          echo "Using simulator $DEVICE_ID"
+          xcodebuild test \
+            -project CarPlayVideo.xcodeproj \
+            -scheme CarPlayVideo \
+            -destination "id=$DEVICE_ID" \
+            CODE_SIGNING_ALLOWED=NO | tee test.log | grep -E "error:|warning: .*CarPlayVideo|Test Suite|Executed|\*\*" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" test.log
+
+      - name: Archive (unsigned, device)
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project CarPlayVideo.xcodeproj \
+            -scheme CarPlayVideo \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath build/CarPlayVideo.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" | tee archive.log | grep -E "error:|\*\*" || true
+          grep -q "\*\* ARCHIVE SUCCEEDED \*\*" archive.log
+
+      - name: Package IPA
+        run: |
+          set -e
+          APP=build/CarPlayVideo.xcarchive/Products/Applications/CarPlayVideo.app
+          test -d "$APP"
+          mkdir -p Payload dist
+          cp -R "$APP" Payload/
+          zip -qry dist/CarPlayVideo.ipa Payload
+          test -s dist/CarPlayVideo.ipa
+          unzip -l dist/CarPlayVideo.ipa
+          echo "Created unsigned IPA: dist/CarPlayVideo.ipa" >> "$GITHUB_STEP_SUMMARY"
+          echo "Sign it with a compatible sideloading tool before installing." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarPlayVideo-ipa
+          path: dist/CarPlayVideo.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            test.log
+            archive.log
